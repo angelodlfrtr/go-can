@@ -1,5 +1,9 @@
 package can
 
+import (
+	"go-can/frame"
+)
+
 // Transport interface can be socketcan, an serial adapter, custom implementation, etc
 type Transport interface {
 	// Open a connection
@@ -9,8 +13,8 @@ type Transport interface {
 	Close() error
 
 	// Write a frame to connection
-	Write(*Frame) error
+	Write(*frame.Frame) error
 
 	// Read a frame from connection
-	Read(*Frame) (bool, error)
+	Read(*frame.Frame) (bool, error)
 }

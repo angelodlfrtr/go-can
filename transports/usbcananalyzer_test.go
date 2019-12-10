@@ -1,7 +1,7 @@
 package transports
 
 import (
-	"github.com/angelodlfrtr/go-can"
+	"go-can/frame"
 	"testing"
 	"time"
 )
@@ -9,7 +9,7 @@ import (
 func TestOpen(t *testing.T) {
 	// Configure connection
 	tr := &USBCanAnalyzer{
-		Port:     "/dev/tty.usbserial-1410",
+		Port:     "/dev/tty.usbserial-14220",
 		BaudRate: 2000000,
 	}
 
@@ -24,7 +24,7 @@ func TestOpen(t *testing.T) {
 func TestClose(t *testing.T) {
 	// Configure connection
 	tr := &USBCanAnalyzer{
-		Port:     "/dev/tty.usbserial-1410",
+		Port:     "/dev/tty.usbserial-14220",
 		BaudRate: 2000000,
 	}
 
@@ -43,7 +43,7 @@ func TestClose(t *testing.T) {
 func TestRead(t *testing.T) {
 	// Configure connection
 	tr := &USBCanAnalyzer{
-		Port:     "/dev/tty.usbserial-1410",
+		Port:     "/dev/tty.usbserial-14220",
 		BaudRate: 2000000,
 	}
 
@@ -53,12 +53,13 @@ func TestRead(t *testing.T) {
 	}
 
 	maxTimeout := 10 * time.Second
+
 	start := time.Now()
 	maxFrames := 4
 	nbFrames := 0
 
 	for {
-		frm := &can.Frame{}
+		frm := &frame.Frame{}
 		ok, err := tr.Read(frm)
 
 		if err != nil {

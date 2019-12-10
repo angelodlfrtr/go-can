@@ -1,8 +1,8 @@
 package transports
 
 import (
-	"github.com/angelodlfrtr/go-can"
 	brutCan "github.com/brutella/can"
+	"go-can/frame"
 )
 
 // SocketCan define a socketcan connection to canbus
@@ -50,7 +50,7 @@ func (t *SocketCan) Close() error {
 }
 
 // Write data to socketcan interface
-func (t *SocketCan) Write(frm *can.Frame) error {
+func (t *SocketCan) Write(frm *frame.Frame) error {
 	brutCanFrm := brutCan.Frame{
 		ID:     frm.ArbitrationID,
 		Length: frm.DLC,
@@ -64,7 +64,7 @@ func (t *SocketCan) Write(frm *can.Frame) error {
 }
 
 // Read data from socketcan interface
-func (t *SocketCan) Read(frm *can.Frame) (bool, error) {
+func (t *SocketCan) Read(frm *frame.Frame) (bool, error) {
 	if len(t.frames) == 0 {
 		return false, nil
 	}

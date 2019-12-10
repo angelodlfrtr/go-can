@@ -1,5 +1,9 @@
 package can
 
+import (
+	"go-can/frame"
+)
+
 // Bus is the main interface to interact with the Transport
 type Bus struct {
 	// Transport represent the "logical" communication layer
@@ -23,11 +27,11 @@ func (bus *Bus) Close() error {
 }
 
 // Write call Transport#Write
-func (bus *Bus) Write(frame *Frame) error {
-	return bus.Transport.Write(frame)
+func (bus *Bus) Write(frm *frame.Frame) error {
+	return bus.Transport.Write(frm)
 }
 
 // Read call Transport#Read
-func (bus *Bus) Read(frame *Frame) (bool, error) {
-	return bus.Transport.Read(frame)
+func (bus *Bus) Read(frm *frame.Frame) (bool, error) {
+	return bus.Transport.Read(frm)
 }

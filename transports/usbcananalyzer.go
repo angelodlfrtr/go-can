@@ -3,8 +3,8 @@ package transports
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/angelodlfrtr/go-can"
 	"github.com/angelodlfrtr/serial"
+	"go-can/frame"
 	"io"
 	"time"
 )
@@ -99,7 +99,7 @@ func (t *USBCanAnalyzer) Close() error {
 }
 
 // Write a frame to serial connection
-func (t *USBCanAnalyzer) Write(frm *can.Frame) error {
+func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	// 0xAA : adapter start of frame
 	data := []byte{0xAA}
 
@@ -122,7 +122,7 @@ func (t *USBCanAnalyzer) Write(frm *can.Frame) error {
 }
 
 // Read a frame from serial connection
-func (t *USBCanAnalyzer) Read(frm *can.Frame) (bool, error) {
+func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
 	data := make([]byte, 64)
 
 	// Read data

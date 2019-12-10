@@ -16,69 +16,70 @@ package main
 
 import (
 	"github.com/angelodlfrtr/go-can"
+	"github.com/angelodlfrtr/go-can/frame"
 	"github.com/angelodlfrtr/go-can/transports"
 	"log"
 )
 
 func main() {
 	// Set up a transport, here via USBCanAnalyzer usb to serial adapater
-	transport := transports.USBCanAnalyzer{
+	transport := &transports.USBCanAnalyzer{
 		Port:     "/dev/someusbtty",
 		BaudRate: 2000000,
 	}
-	
+
 	// Set up bus
-	bus := can.NewBus(Transport: transport)
-	
+	bus := can.NewBus(transport)
+
 	// Try to open bus
 	if err := can.Open(); err != nil {
 		log.Fatal(err)
 	}
-	
+
 	log.Println("Bus opened")
-	
+
 	// Write a frame
-	frame := &can.Frame{
+	frm := &frame.Frame{
 		ArbitrationID: uint32(0x45),
 		DLC:           4,
 		Data:          [8]byte{0x01, 0x02, 0x03, 0x04}
 	}
-	
-	if err := bus.Write(frame); err != nil {
+
+	if err := bus.Write(frm); err != nil {
 		Log.Fatal(err)
 	}
-	
+
 	log.Println("Frame writed")
-	
+
 	// Read frames
 	maxFrames := 5 // Read 5 frames
 	nbFrames = 0
-	
+
 	log.Println("Listen for frames")
-	
+
 	for {
-		frame := &can.Frame{}
-		ok, err := bus.Read(frame)
-		
+		frm := &frame.Frame{}
+		ok, err := bus.Read(frm)
+
 		if err != nil {
 			log.Fatal(err)
 		}
-		
+
 		if ok {
-			log.Println(frame)
+			log.Println(frm)
 			nbFrames++
-			
+
 			if nbFrames >= maxFrames {
 				break
 			}
 		}
 	}
-	
+
 	// Close the bus
 	if err := bus.Close(); err != nil {
-		Log.Fatal(err)
+		log.Fatal(err)
 	}
-	
+
 	log.Println("Bus closed")
 }
 ```
