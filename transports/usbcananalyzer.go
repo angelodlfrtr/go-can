@@ -101,7 +101,9 @@ func (t *USBCanAnalyzer) Close() error {
 // Write a frame to serial connection
 func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	// 0xAA : adapter start of frame
-	data := []byte{0xAA}
+	data := make([]byte, 0, 12)
+	data[0] = 0xAA
+	//data := []byte{0xAA}
 
 	// DLC
 	data[1] = 0xC0 | frm.DLC
