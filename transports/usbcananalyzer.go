@@ -2,7 +2,6 @@ package transports
 
 import (
 	"encoding/binary"
-	"fmt"
 	"github.com/angelodlfrtr/go-can/frame"
 	"github.com/angelodlfrtr/serial"
 	"io"
@@ -101,9 +100,10 @@ func (t *USBCanAnalyzer) Close() error {
 // Write a frame to serial connection
 func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	// 0xAA : adapter start of frame
-	data := make([]byte, 0, 12)
+	frmFullLen := 4 + int(frm.DLC) + 1
+
+	data := make([]byte, frmFullLen)
 	data[0] = 0xAA
-	//data := []byte{0xAA}
 
 	// DLC
 	data[1] = 0xC0 | frm.DLC
@@ -112,12 +112,12 @@ func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	binary.LittleEndian.PutUint32(data[2:], frm.ArbitrationID)
 
 	// Append data
-	for i := 0; i < 8; i++ {
-		data[i+6] = frm.Data[i]
+	for i := 0; i < int(frm.DLC); i++ {
+		data[i+4] = frm.Data[i]
 	}
 
 	// Adapater end of frame
-	data[13] = 0x55
+	data[frmFullLen-1] = 0x55
 
 	_, err := t.client.Write(data)
 	return err
@@ -191,8 +191,6 @@ func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
 	// Resize t.dataBuf
 	lastMsgLen := 1 + 1 + 2 + frm.DLC + 1 // 0xAA (SOF) + DLC + arbId + data + 0x55 (EOF)
 	t.dataBuf = t.dataBuf[lastMsgLen:]
-
-	fmt.Println(t.dataBuf)
 
 	return true, nil
 }
