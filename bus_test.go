@@ -1,7 +1,7 @@
 package can
 
 import (
-	"go-can/transports"
+	"github.com/angelodlfrtr/go-can/transports"
 	"testing"
 )
 

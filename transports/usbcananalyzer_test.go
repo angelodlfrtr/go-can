@@ -1,7 +1,7 @@
 package transports
 
 import (
-	"go-can/frame"
+	"github.com/angelodlfrtr/go-can/frame"
 	"testing"
 	"time"
 )

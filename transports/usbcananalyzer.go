@@ -3,8 +3,8 @@ package transports
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/angelodlfrtr/go-can/frame"
 	"github.com/angelodlfrtr/serial"
-	"go-can/frame"
 	"io"
 	"time"
 )

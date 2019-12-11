@@ -1,7 +1,7 @@
 package can
 
 import (
-	"go-can/frame"
+	"github.com/angelodlfrtr/go-can/frame"
 )
 
 // Bus is the main interface to interact with the Transport

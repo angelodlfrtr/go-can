@@ -1,7 +1,7 @@
 package can
 
 import (
-	"go-can/frame"
+	"github.com/angelodlfrtr/go-can/frame"
 )
 
 // Transport interface can be socketcan, an serial adapter, custom implementation, etc

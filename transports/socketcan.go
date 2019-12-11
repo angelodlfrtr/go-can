@@ -1,8 +1,8 @@
 package transports
 
 import (
+	"github.com/angelodlfrtr/go-can/frame"
 	brutCan "github.com/brutella/can"
-	"go-can/frame"
 )
 
 // SocketCan define a socketcan connection to canbus
