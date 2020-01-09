@@ -1,9 +1,10 @@
 package transports
 
 import (
-	"github.com/angelodlfrtr/go-can/frame"
 	"testing"
 	"time"
+
+	"github.com/angelodlfrtr/go-can/frame"
 )
 
 func TestOpen(t *testing.T) {

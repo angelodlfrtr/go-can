@@ -2,10 +2,11 @@ package transports
 
 import (
 	"encoding/binary"
-	"github.com/angelodlfrtr/go-can/frame"
-	"github.com/angelodlfrtr/serial"
 	"io"
 	"time"
+
+	"github.com/angelodlfrtr/go-can/frame"
+	"github.com/angelodlfrtr/serial"
 )
 
 // USBCanAnalyzer define a USBCanAnalyzer connection to canbus via serial connection on USB
@@ -30,7 +31,7 @@ func (t *USBCanAnalyzer) Open() error {
 		// Name of the serial port
 		Name: t.Port,
 
-		// Baud rate should normaly be 2 000 000
+		// Baud rate should normally be 2 000 000
 		Baud: t.BaudRate,
 
 		// ReadTimeout for the connection. If zero, the Read() operation is blocking
@@ -54,7 +55,7 @@ func (t *USBCanAnalyzer) Open() error {
 
 	t.client = port
 
-	// Send initalization sequence (configure adapter)
+	// Send initialization sequence (configure adapter)
 	seq := []byte{
 		0xAA,
 		0x55,

@@ -1,14 +1,17 @@
 package can
 
 import (
+	"testing"
+
 	"github.com/angelodlfrtr/go-can/frame"
 	"github.com/angelodlfrtr/go-can/transports"
-	"testing"
 )
+
+const TestPort string = "/dev/tty.usbserial-14220"
 
 func TestNewBus(t *testing.T) {
 	tr := &transports.USBCanAnalyzer{
-		Port:     "/dev/tty.usbserial-14220",
+		Port:     TestPort,
 		BaudRate: 2000000,
 	}
 
@@ -19,7 +22,7 @@ func TestNewBus(t *testing.T) {
 
 func TestOpen(t *testing.T) {
 	tr := &transports.USBCanAnalyzer{
-		Port:     "/dev/tty.usbserial-14220",
+		Port:     TestPort,
 		BaudRate: 2000000,
 	}
 
@@ -32,7 +35,7 @@ func TestOpen(t *testing.T) {
 
 func TestWrite(t *testing.T) {
 	tr := &transports.USBCanAnalyzer{
-		Port:     "/dev/tty.usbserial-14220",
+		Port:     TestPort,
 		BaudRate: 2000000,
 	}
 

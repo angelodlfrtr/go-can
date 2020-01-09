@@ -7,7 +7,7 @@ import (
 // Bus is the main interface to interact with the Transport
 type Bus struct {
 	// Transport represent the "logical" communication layer
-	// wich can be socketcan on linux, a serial adapater, or your custom transport
+	// which can be socketcan on linux, a serial adapater, or your custom transport
 	Transport Transport
 }
 
