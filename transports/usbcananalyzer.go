@@ -100,10 +100,10 @@ func (t *USBCanAnalyzer) Close() error {
 
 // Write a frame to serial connection
 func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
-	// 0xAA : adapter start of frame
 	frmFullLen := 4 + int(frm.DLC) + 1
-
 	data := make([]byte, frmFullLen)
+
+	// 0xAA : adapter start of frame
 	data[0] = 0xAA
 
 	// DLC
@@ -182,7 +182,7 @@ func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
 	}
 
 	// Arbitration ID
-	frm.ArbitrationID = binary.LittleEndian.Uint32(t.dataBuf[2:])
+	frm.ArbitrationID = uint32(binary.LittleEndian.Uint16(t.dataBuf[2:]))
 
 	// Data
 	for i := 0; i < int(frm.DLC); i++ {
