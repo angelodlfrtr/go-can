@@ -71,18 +71,12 @@ func TestRead(t *testing.T) {
 
 	start := time.Now()
 	timeout := 5 * time.Second
-	nbReads := 0
 
 	for {
 		if time.Since(start) > timeout {
 			break
 		}
 
-		if nbReads > 50 {
-			break
-		}
-
-		nbReads++
 		frm := &frame.Frame{}
 
 		if ok, _ := bus.Read(frm); ok {

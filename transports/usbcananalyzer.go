@@ -2,8 +2,8 @@ package transports
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/angelodlfrtr/go-can/frame"
@@ -23,6 +23,52 @@ type USBCanAnalyzer struct {
 
 	// dataBuf contain data received by serial connection
 	dataBuf []byte
+
+	// mutex to access dataBuf
+	mutex sync.Mutex
+
+	// readErr is set if listen encounter an error during the read, readErr is set
+	readErr error
+
+	// running is read goroutine running
+	running bool
+}
+
+func (t *USBCanAnalyzer) run() {
+	t.running = true
+
+	go func() {
+		for {
+			// Stop goroutine if t.running == false
+			t.mutex.Lock()
+			running := t.running
+			t.mutex.Unlock()
+
+			if !running {
+				break
+			}
+
+			// Max size of a can frame == 18 (SOF + 16 + EOF) (16 = max can frame size)
+			data := make([]byte, 18)
+
+			// Read data
+			n, err := t.client.Read(data)
+
+			if err == io.EOF {
+				continue
+			}
+
+			t.readErr = err
+			if err != nil {
+				continue
+			}
+
+			// Append to global data buf
+			t.mutex.Lock()
+			t.dataBuf = append(t.dataBuf, data[:n]...)
+			t.mutex.Unlock()
+		}
+	}()
 }
 
 // Open a serial connection
@@ -36,7 +82,8 @@ func (t *USBCanAnalyzer) Open() error {
 		Baud: t.BaudRate,
 
 		// ReadTimeout for the connection. If zero, the Read() operation is blocking
-		ReadTimeout: 100 * time.Millisecond,
+		// ReadTimeout: 100 * time.Millisecond,
+		ReadTimeout: 0,
 
 		// Size is 8 databytes for USBCanAnalyzer
 		Size: 8,
@@ -87,6 +134,9 @@ func (t *USBCanAnalyzer) Open() error {
 	// Wait 500ms (else adapater has bugs)
 	time.Sleep(500 * time.Millisecond)
 
+	// Run reads from serial
+	t.run()
+
 	return nil
 }
 
@@ -95,6 +145,11 @@ func (t *USBCanAnalyzer) Close() error {
 	if t.client == nil {
 		return nil
 	}
+
+	// Stop reading serial port
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	t.running = false
 
 	return t.client.Close()
 }
@@ -125,33 +180,15 @@ func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	return err
 }
 
-func (t *USBCanAnalyzer) readSerial() error {
-	// Max size of a can frame == 18 (SOF + 16 + EOF) (16 = max can frame size)
-	data := make([]byte, 18)
-
-	start := time.Now()
-
-	// Read data
-	n, err := t.client.Read(data)
-
-	fmt.Println(time.Since(start))
-
-	if err == io.EOF {
-		return nil
-	}
-
-	if err != nil {
-		return err
-	}
-
-	// Append to global data buf
-	t.dataBuf = append(t.dataBuf, data[:n]...)
-
-	return nil
-}
-
 // Read a frame from serial connection
 func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	if t.readErr != nil {
+		return false, t.readErr
+	}
+
 	// Find adapter start of frame
 	for {
 		// Stop if buffer is empty
@@ -172,10 +209,6 @@ func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
 	// Else read serial
 	// (SOF + 2 + DLC + EOF) = 5
 	if len(t.dataBuf) < 5 {
-		if err := t.readSerial(); err != nil {
-			return false, err
-		}
-
 		return false, nil
 	}
 
@@ -185,10 +218,6 @@ func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
 	// Check buffer len can contain a frame
 	// else read serial
 	if len(t.dataBuf) < 5+int(frm.DLC) {
-		if err := t.readSerial(); err != nil {
-			return false, err
-		}
-
 		return false, nil
 	}
 
