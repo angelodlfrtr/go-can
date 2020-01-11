@@ -2,6 +2,7 @@ package can
 
 import (
 	"testing"
+	"time"
 
 	"github.com/angelodlfrtr/go-can/frame"
 	"github.com/angelodlfrtr/go-can/transports"
@@ -53,5 +54,41 @@ func TestWrite(t *testing.T) {
 
 	if err := bus.Write(frm); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRead(t *testing.T) {
+	tr := &transports.USBCanAnalyzer{
+		Port:     TestPort,
+		BaudRate: 2000000,
+	}
+
+	bus := NewBus(tr)
+
+	if err := bus.Open(); err != nil {
+		t.Fatal(err)
+	}
+
+	start := time.Now()
+	timeout := 5 * time.Second
+	nbReads := 0
+
+	for {
+		if time.Since(start) > timeout {
+			break
+		}
+
+		if nbReads > 50 {
+			break
+		}
+
+		nbReads++
+		frm := &frame.Frame{}
+
+		if ok, _ := bus.Read(frm); ok {
+			t.Log(time.Since(start))
+			t.Log(frm)
+			t.Log("")
+		}
 	}
 }

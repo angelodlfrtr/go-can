@@ -2,6 +2,7 @@ package transports
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"time"
 
@@ -124,60 +125,82 @@ func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	return err
 }
 
-// Read a frame from serial connection
-func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
-	data := make([]byte, 64)
+func (t *USBCanAnalyzer) readSerial() error {
+	// Max size of a can frame == 18 (SOF + 16 + EOF) (16 = max can frame size)
+	data := make([]byte, 18)
+
+	start := time.Now()
 
 	// Read data
 	n, err := t.client.Read(data)
 
+	fmt.Println(time.Since(start))
+
 	if err == io.EOF {
-		return false, nil
+		return nil
 	}
 
 	if err != nil {
-		return false, err
-	}
-
-	if n == 0 {
-		return false, nil
+		return err
 	}
 
 	// Append to global data buf
-	for i := 0; i < n; i++ {
-		t.dataBuf = append(t.dataBuf, data[i])
-	}
+	t.dataBuf = append(t.dataBuf, data[:n]...)
 
+	return nil
+}
+
+// Read a frame from serial connection
+func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
 	// Find adapter start of frame
 	for {
+		// Stop if buffer is empty
 		if len(t.dataBuf) == 0 {
 			break
 		}
 
+		// Stop if found SOF
 		if t.dataBuf[0] == 0xAA {
 			break
 		}
 
+		// Remove one element from dataBuf and loop again
 		t.dataBuf = t.dataBuf[1:]
 	}
 
-	// If no data, return
-	if len(t.dataBuf) == 0 {
-		return false, nil
-	}
-
 	// Check if data can contain an entire frame (min frame size is 5 in case of 0 data)
+	// Else read serial
+	// (SOF + 2 + DLC + EOF) = 5
 	if len(t.dataBuf) < 5 {
+		if err := t.readSerial(); err != nil {
+			return false, err
+		}
+
 		return false, nil
 	}
-
-	// Read frame
 
 	// DLC
 	frm.DLC = t.dataBuf[1] - 0xC0
 
 	// Check buffer len can contain a frame
+	// else read serial
 	if len(t.dataBuf) < 5+int(frm.DLC) {
+		if err := t.readSerial(); err != nil {
+			return false, err
+		}
+
+		return false, nil
+	}
+
+	// Validate frame
+	// Check frame end with 0x55
+	// The USB cananalyzer have bug and soemtimes returns wrong data fields
+	if t.dataBuf[4+int(frm.DLC)] != 0x55 {
+		// Ignore frame by juste removing the frame SOF
+		// The frame will be ignored at next iteration
+		t.dataBuf = t.dataBuf[1:]
+
+		// @TODO: Maybe return an error here ?
 		return false, nil
 	}
 
