@@ -8,7 +8,7 @@ import (
 	"github.com/angelodlfrtr/go-can/transports"
 )
 
-const TestPort string = "/dev/tty.usbserial-14220"
+const TestPort string = "/dev/tty.usbserial-1410"
 
 func TestNewBus(t *testing.T) {
 	tr := &transports.USBCanAnalyzer{

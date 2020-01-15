@@ -166,7 +166,7 @@ func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	data[1] = 0xC0 | frm.DLC
 
 	// Write arbitration id
-	binary.LittleEndian.PutUint32(data[2:], frm.ArbitrationID)
+	binary.LittleEndian.PutUint16(data[2:], uint16(frm.ArbitrationID))
 
 	// Append data
 	for i := 0; i < int(frm.DLC); i++ {
