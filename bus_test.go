@@ -70,19 +70,18 @@ func TestRead(t *testing.T) {
 	}
 
 	start := time.Now()
-	timeout := 5 * time.Second
+	timeout := 10 * time.Second
+	ticker := time.NewTicker(timeout)
 
 	for {
-		if time.Since(start) > timeout {
-			break
-		}
-
-		frm := &frame.Frame{}
-
-		if ok, _ := bus.Read(frm); ok {
+		select {
+		case frm := <-bus.ReadChan():
 			t.Log(time.Since(start))
 			t.Log(frm)
 			t.Log("")
+		case <-ticker.C:
+			t.Log("Timeout")
+			return
 		}
 	}
 }

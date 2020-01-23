@@ -18,6 +18,9 @@ type SocketCan struct {
 
 	// frames contain unread can frames from connectionJkA
 	frames []brutCan.Frame
+
+	// readChan
+	readChan chan *frame.Frame
 }
 
 // Open a socketcan connection
@@ -28,6 +31,8 @@ func (t *SocketCan) Open() error {
 	if err != nil {
 		return err
 	}
+
+	t.readChan = make(chan *frame.Frame)
 
 	t.bus = bus
 
@@ -44,6 +49,9 @@ func (t *SocketCan) Open() error {
 func (t *SocketCan) Close() error {
 	// Unsubscribe for frames
 	t.bus.Unsubscribe(t.busHandler)
+
+	// Close read chan
+	close(t.readChan)
 
 	// Close connectino
 	return t.bus.Disconnect()
@@ -63,24 +71,22 @@ func (t *SocketCan) Write(frm *frame.Frame) error {
 	return t.bus.Publish(brutCanFrm)
 }
 
-// Read data from socketcan interface
-func (t *SocketCan) Read(frm *frame.Frame) (bool, error) {
-	if len(t.frames) == 0 {
-		return false, nil
-	}
-
-	frm.ArbitrationID = t.frames[0].ID
-	frm.DLC = t.frames[0].Length
-	frm.Data = t.frames[0].Data
-
-	// Remove frame
-	t.frames = t.frames[1:]
-
-	return true, nil
+// ReadChan
+func (t *SocketCan) ReadChan() chan *frame.Frame {
+	return t.ReadChan()
 }
 
 // handleFrame handle incoming frames from sockercan interface
 // and add them to frames buffer
-func (t *SocketCan) handleFrame(frm brutCan.Frame) {
-	t.frames = append(t.frames, frm)
+func (t *SocketCan) handleFrame(brutFrm brutCan.Frame) {
+	frm := &frame.Frame{}
+
+	frm.ArbitrationID = brutFrm.ID
+	frm.DLC = brutFrm.Length
+	frm.Data = brutFrm.Data
+
+	select {
+	case t.readChan <- frm:
+	default:
+	}
 }

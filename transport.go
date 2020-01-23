@@ -15,6 +15,6 @@ type Transport interface {
 	// Write a frame to connection
 	Write(*frame.Frame) error
 
-	// Read a frame from connection
-	Read(*frame.Frame) (bool, error)
+	// ReadChan return the channel for reading frames
+	ReadChan() chan *frame.Frame
 }

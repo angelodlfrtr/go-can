@@ -32,10 +32,14 @@ type USBCanAnalyzer struct {
 
 	// running is read goroutine running
 	running bool
+
+	// readChan is a chan for reading frames
+	readChan chan *frame.Frame
 }
 
 func (t *USBCanAnalyzer) run() {
 	t.running = true
+	t.readChan = make(chan *frame.Frame)
 
 	go func() {
 		for {
@@ -51,7 +55,7 @@ func (t *USBCanAnalyzer) run() {
 			// Max size of a can frame == 18 (SOF + 16 + EOF) (16 = max can frame size)
 			data := make([]byte, 18)
 
-			// Read data
+			// Read data (in a blocking way)
 			n, err := t.client.Read(data)
 
 			if err == io.EOF {
@@ -67,8 +71,87 @@ func (t *USBCanAnalyzer) run() {
 			t.mutex.Lock()
 			t.dataBuf = append(t.dataBuf, data[:n]...)
 			t.mutex.Unlock()
+
+			// Publish frames on channel
+			for {
+				if ok := t.publishFrames(); !ok {
+					break
+				}
+			}
 		}
 	}()
+}
+
+func (t *USBCanAnalyzer) publishFrames() bool {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	// Find adapter start of frame
+	for {
+		// Stop if buffer is empty
+		if len(t.dataBuf) == 0 {
+			break
+		}
+
+		// Stop if found SOF
+		if t.dataBuf[0] == 0xAA {
+			break
+		}
+
+		// Remove one element from dataBuf and loop again
+		t.dataBuf = t.dataBuf[1:]
+	}
+
+	// Check if data can contain an entire frame (min frame size is 5 in case of 0 data)
+	// Else read serial
+	// (SOF + 2 + DLC + EOF) = 5
+	if len(t.dataBuf) < 5 {
+		return false
+	}
+
+	// Create new frame
+	frm := &frame.Frame{}
+
+	// DLC
+	frm.DLC = t.dataBuf[1] - 0xC0
+
+	// Check buffer len can contain a frame
+	// else read serial
+	if len(t.dataBuf) < 5+int(frm.DLC) {
+		return false
+	}
+
+	// Validate frame
+	// Check frame end with 0x55
+	// The USB cananalyzer have bug and soemtimes returns wrong data fields
+	if t.dataBuf[4+int(frm.DLC)] != 0x55 {
+		// Ignore frame by juste removing the frame SOF
+		// The frame will be ignored at next iteration
+		t.dataBuf = t.dataBuf[1:]
+
+		// @TODO: Maybe return an error here ?
+		return false
+	}
+
+	// Arbitration ID
+	frm.ArbitrationID = uint32(binary.LittleEndian.Uint16(t.dataBuf[2:]))
+
+	// Data
+	for i := 0; i < int(frm.DLC); i++ {
+		frm.Data[i] = t.dataBuf[i+4]
+	}
+
+	// Resize t.dataBuf
+	lastMsgLen := 1 + 1 + 2 + frm.DLC + 1 // 0xAA (SOF) + DLC + arbId + data + 0x55 (EOF)
+	t.dataBuf = t.dataBuf[lastMsgLen:]
+
+	// Publish frame
+	select {
+	case t.readChan <- frm:
+	default:
+	}
+
+	return true
 }
 
 // Open a serial connection
@@ -151,6 +234,8 @@ func (t *USBCanAnalyzer) Close() error {
 	defer t.mutex.Unlock()
 	t.running = false
 
+	close(t.readChan)
+
 	return t.client.Close()
 }
 
@@ -180,70 +265,7 @@ func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 	return err
 }
 
-// Read a frame from serial connection
-func (t *USBCanAnalyzer) Read(frm *frame.Frame) (bool, error) {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-
-	if t.readErr != nil {
-		return false, t.readErr
-	}
-
-	// Find adapter start of frame
-	for {
-		// Stop if buffer is empty
-		if len(t.dataBuf) == 0 {
-			break
-		}
-
-		// Stop if found SOF
-		if t.dataBuf[0] == 0xAA {
-			break
-		}
-
-		// Remove one element from dataBuf and loop again
-		t.dataBuf = t.dataBuf[1:]
-	}
-
-	// Check if data can contain an entire frame (min frame size is 5 in case of 0 data)
-	// Else read serial
-	// (SOF + 2 + DLC + EOF) = 5
-	if len(t.dataBuf) < 5 {
-		return false, nil
-	}
-
-	// DLC
-	frm.DLC = t.dataBuf[1] - 0xC0
-
-	// Check buffer len can contain a frame
-	// else read serial
-	if len(t.dataBuf) < 5+int(frm.DLC) {
-		return false, nil
-	}
-
-	// Validate frame
-	// Check frame end with 0x55
-	// The USB cananalyzer have bug and soemtimes returns wrong data fields
-	if t.dataBuf[4+int(frm.DLC)] != 0x55 {
-		// Ignore frame by juste removing the frame SOF
-		// The frame will be ignored at next iteration
-		t.dataBuf = t.dataBuf[1:]
-
-		// @TODO: Maybe return an error here ?
-		return false, nil
-	}
-
-	// Arbitration ID
-	frm.ArbitrationID = uint32(binary.LittleEndian.Uint16(t.dataBuf[2:]))
-
-	// Data
-	for i := 0; i < int(frm.DLC); i++ {
-		frm.Data[i] = t.dataBuf[i+4]
-	}
-
-	// Resize t.dataBuf
-	lastMsgLen := 1 + 1 + 2 + frm.DLC + 1 // 0xAA (SOF) + DLC + arbId + data + 0x55 (EOF)
-	t.dataBuf = t.dataBuf[lastMsgLen:]
-
-	return true, nil
+// ReadChan returns the read chan
+func (t *USBCanAnalyzer) ReadChan() chan *frame.Frame {
+	return t.readChan
 }

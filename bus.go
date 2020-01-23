@@ -31,7 +31,7 @@ func (bus *Bus) Write(frm *frame.Frame) error {
 	return bus.Transport.Write(frm)
 }
 
-// Read call Transport#Read
-func (bus *Bus) Read(frm *frame.Frame) (bool, error) {
-	return bus.Transport.Read(frm)
+// Read call Transport#ReadChan
+func (bus *Bus) ReadChan() chan *frame.Frame {
+	return bus.Transport.ReadChan()
 }
