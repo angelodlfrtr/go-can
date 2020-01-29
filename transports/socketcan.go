@@ -32,8 +32,9 @@ func (t *SocketCan) Open() error {
 		return err
 	}
 
-	t.readChan = make(chan *frame.Frame)
+	go bus.ConnectAndPublish()
 
+	t.readChan = make(chan *frame.Frame)
 	t.bus = bus
 
 	// Create handler
@@ -73,7 +74,7 @@ func (t *SocketCan) Write(frm *frame.Frame) error {
 
 // ReadChan
 func (t *SocketCan) ReadChan() chan *frame.Frame {
-	return t.ReadChan()
+	return t.readChan
 }
 
 // handleFrame handle incoming frames from sockercan interface
