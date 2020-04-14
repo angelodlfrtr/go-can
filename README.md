@@ -2,7 +2,6 @@
 
 [github.com/angelodlfrtr/go-can](https://github.com/angelodlfrtr/go-can) is a canbus golang library supporting multiple transports (serial adapater, socketcan, etc).
 
-
 ## Installation
 
 ```bash
@@ -15,78 +14,69 @@ go get github.com/angelodlfrtr/go-can
 package main
 
 import (
-	"github.com/angelodlfrtr/go-can"
-	"github.com/angelodlfrtr/go-can/frame"
-	"github.com/angelodlfrtr/go-can/transports"
 	"log"
+	"time"
+
+	"github.com/angelodlfrtr/go-can"
+	"github.com/angelodlfrtr/go-can/transports"
 )
 
+const TestPort string = "/dev/tty.usbserial-14140"
+
 func main() {
-	// Set up a transport, here via USBCanAnalyzer usb to serial adapater
-	transport := &transports.USBCanAnalyzer{
-		Port:     "/dev/someusbtty",
+	// Configure transport
+	tr := &transports.USBCanAnalyzer{
+		Port:     TestPort,
 		BaudRate: 2000000,
 	}
 
-	// Set up bus
-	bus := can.NewBus(transport)
+	// Open bus
+	bus := can.NewBus(tr)
 
-	// Try to open bus
-	if err := can.Open(); err != nil {
+	if err := bus.Open(); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Bus opened")
+	// Write some frames
 
-	// Write a frame
-	frm := &frame.Frame{
-		ArbitrationID: uint32(0x45),
-		DLC:           4,
-		Data:          [8]byte{0x01, 0x02, 0x03, 0x04}
-	}
+	log.Println("Write 10 frames")
 
-	if err := bus.Write(frm); err != nil {
-		Log.Fatal(err)
-	}
+	for i := 0; i < 9; i++ {
+		frm := &can.Frame{
+			ArbitrationID: uint32(i),
+			Data:          [8]byte{0x00, 0X01, uint8(i)},
+		}
 
-	log.Println("Frame writed")
-
-	// Read frames
-	maxFrames := 5 // Read 5 frames
-	nbFrames = 0
-
-	log.Println("Listen for frames")
-
-	for {
-		frm := &frame.Frame{}
-		ok, err := bus.Read(frm)
-
-		if err != nil {
+		if err := bus.Write(frm); err != nil {
 			log.Fatal(err)
 		}
 
-		if ok {
-			log.Println(frm)
-			nbFrames++
-
-			if nbFrames >= maxFrames {
-				break
-			}
-		}
+		log.Printf("Frame %v writed", frm)
 	}
 
-	// Close the bus
+	// Read frames during
+
+	log.Println("Wait a frame (10s timeout)")
+	timer := time.NewTimer(10 * time.Second)
+
+	select {
+	case frm := <-bus.ReadChan():
+		log.Println(frm)
+	case <-timer.C:
+		log.Println("Timeout")
+	}
+
 	if err := bus.Close(); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Bus closed")
+	log.Println("done")
 }
 ```
 
 ## License
 
-Copyright (c) 2019 angelodlfrtr
+Copyright (c) 2019 The contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

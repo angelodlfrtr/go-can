@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/angelodlfrtr/go-can/frame"
+	"github.com/angelodlfrtr/go-can"
 	"github.com/angelodlfrtr/serial"
 )
 
@@ -34,12 +34,12 @@ type USBCanAnalyzer struct {
 	running bool
 
 	// readChan is a chan for reading frames
-	readChan chan *frame.Frame
+	readChan chan *can.Frame
 }
 
 func (t *USBCanAnalyzer) run() {
 	t.running = true
-	t.readChan = make(chan *frame.Frame)
+	t.readChan = make(chan *can.Frame)
 
 	go func() {
 		for {
@@ -110,7 +110,7 @@ func (t *USBCanAnalyzer) publishFrames() bool {
 	}
 
 	// Create new frame
-	frm := &frame.Frame{}
+	frm := &can.Frame{}
 
 	// DLC
 	frm.DLC = t.dataBuf[1] - 0xC0
@@ -240,7 +240,7 @@ func (t *USBCanAnalyzer) Close() error {
 }
 
 // Write a frame to serial connection
-func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
+func (t *USBCanAnalyzer) Write(frm *can.Frame) error {
 	frmFullLen := 4 + int(frm.DLC) + 1
 	data := make([]byte, frmFullLen)
 
@@ -266,6 +266,6 @@ func (t *USBCanAnalyzer) Write(frm *frame.Frame) error {
 }
 
 // ReadChan returns the read chan
-func (t *USBCanAnalyzer) ReadChan() chan *frame.Frame {
+func (t *USBCanAnalyzer) ReadChan() chan *can.Frame {
 	return t.readChan
 }

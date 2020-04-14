@@ -1,4 +1,4 @@
-package frame
+package can
 
 // Frame represent a can frame
 type Frame struct {

@@ -1,7 +1,7 @@
 package transports
 
 import (
-	"github.com/angelodlfrtr/go-can/frame"
+	"github.com/angelodlfrtr/go-can"
 	brutCan "github.com/brutella/can"
 )
 
@@ -20,7 +20,7 @@ type SocketCan struct {
 	frames []brutCan.Frame
 
 	// readChan
-	readChan chan *frame.Frame
+	readChan chan *can.Frame
 }
 
 // Open a socketcan connection
@@ -34,7 +34,7 @@ func (t *SocketCan) Open() error {
 
 	go bus.ConnectAndPublish()
 
-	t.readChan = make(chan *frame.Frame)
+	t.readChan = make(chan *can.Frame)
 	t.bus = bus
 
 	// Create handler
@@ -59,7 +59,7 @@ func (t *SocketCan) Close() error {
 }
 
 // Write data to socketcan interface
-func (t *SocketCan) Write(frm *frame.Frame) error {
+func (t *SocketCan) Write(frm *can.Frame) error {
 	brutCanFrm := brutCan.Frame{
 		ID:     frm.ArbitrationID,
 		Length: frm.DLC,
@@ -73,14 +73,14 @@ func (t *SocketCan) Write(frm *frame.Frame) error {
 }
 
 // ReadChan
-func (t *SocketCan) ReadChan() chan *frame.Frame {
+func (t *SocketCan) ReadChan() chan *can.Frame {
 	return t.readChan
 }
 
 // handleFrame handle incoming frames from sockercan interface
 // and add them to frames buffer
 func (t *SocketCan) handleFrame(brutFrm brutCan.Frame) {
-	frm := &frame.Frame{}
+	frm := &can.Frame{}
 
 	frm.ArbitrationID = brutFrm.ID
 	frm.DLC = brutFrm.Length

@@ -3,30 +3,41 @@ package can
 import (
 	"testing"
 	"time"
-
-	"github.com/angelodlfrtr/go-can/frame"
-	"github.com/angelodlfrtr/go-can/transports"
 )
 
-const TestPort string = "/dev/tty.usbserial-1410"
+// FakeTransport
+type FakeTransport struct {
+	readChan chan *Frame
+}
+
+func (t *FakeTransport) Open() error {
+	return nil
+}
+
+// Close a serial connection
+func (t *FakeTransport) Close() error {
+	return nil
+}
+
+// Write a frame to serial connection
+func (t *FakeTransport) Write(frm *Frame) error {
+	return nil
+}
+
+// ReadChan returns the read chan
+func (t *FakeTransport) ReadChan() chan *Frame {
+	return t.readChan
+}
 
 func TestNewBus(t *testing.T) {
-	tr := &transports.USBCanAnalyzer{
-		Port:     TestPort,
-		BaudRate: 2000000,
-	}
-
+	tr := &FakeTransport{}
 	bus := NewBus(tr)
 
 	t.Log(*bus)
 }
 
 func TestOpen(t *testing.T) {
-	tr := &transports.USBCanAnalyzer{
-		Port:     TestPort,
-		BaudRate: 2000000,
-	}
-
+	tr := &FakeTransport{}
 	bus := NewBus(tr)
 
 	if err := bus.Open(); err != nil {
@@ -35,18 +46,14 @@ func TestOpen(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	tr := &transports.USBCanAnalyzer{
-		Port:     TestPort,
-		BaudRate: 2000000,
-	}
-
+	tr := &FakeTransport{}
 	bus := NewBus(tr)
 
 	if err := bus.Open(); err != nil {
 		t.Fatal(err)
 	}
 
-	frm := &frame.Frame{
+	frm := &Frame{
 		ArbitrationID: uint32(0x45),
 		DLC:           6,
 		Data:          [8]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
@@ -58,11 +65,7 @@ func TestWrite(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	tr := &transports.USBCanAnalyzer{
-		Port:     TestPort,
-		BaudRate: 2000000,
-	}
-
+	tr := &FakeTransport{}
 	bus := NewBus(tr)
 
 	if err := bus.Open(); err != nil {
@@ -70,7 +73,7 @@ func TestRead(t *testing.T) {
 	}
 
 	start := time.Now()
-	timeout := 10 * time.Second
+	timeout := 1 * time.Second
 	ticker := time.NewTicker(timeout)
 
 	for {
