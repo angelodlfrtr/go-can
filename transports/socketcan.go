@@ -1,3 +1,4 @@
+// Package transports contain code to load a bus interface from different hardware
 package transports
 
 import (

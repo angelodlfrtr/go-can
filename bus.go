@@ -1,3 +1,4 @@
+// Package can provide utils to connect to a can bus using hardware adapters system
 package can
 
 // Bus is the main interface to interact with the Transport
@@ -27,7 +28,7 @@ func (bus *Bus) Write(frm *Frame) error {
 	return bus.Transport.Write(frm)
 }
 
-// Read call Transport#ReadChan
+// ReadChan call Transport#ReadChan
 func (bus *Bus) ReadChan() chan *Frame {
 	return bus.Transport.ReadChan()
 }
