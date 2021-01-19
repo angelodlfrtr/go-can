@@ -8,6 +8,7 @@ import (
 	"github.com/angelodlfrtr/go-can/transports"
 )
 
+// TestPort contain serial path to test port
 const TestPort string = "/dev/tty.usbserial-14140"
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 	for i := 0; i < 9; i++ {
 		frm := &can.Frame{
 			ArbitrationID: uint32(i),
-			Data:          [8]byte{0x00, 0X01, uint8(i)},
+			Data:          [8]byte{0x00, 0x01, uint8(i)},
 		}
 
 		if err := bus.Write(frm); err != nil {

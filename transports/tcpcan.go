@@ -27,6 +27,7 @@ type TCPCan struct {
 	stopChan chan bool
 }
 
+// Open tcpCan transport
 func (tcpCan *TCPCan) Open() error {
 	tcpCan.readChan = make(chan *can.Frame)
 	tcpCan.stopChan = make(chan bool)
@@ -43,6 +44,7 @@ func (tcpCan *TCPCan) Open() error {
 	return nil
 }
 
+// Close tcpCan transport
 func (tcpCan *TCPCan) Close() error {
 	select {
 	case tcpCan.stopChan <- true:
@@ -52,6 +54,7 @@ func (tcpCan *TCPCan) Close() error {
 	return tcpCan.conn.Close()
 }
 
+// Write a frame to tcpCan transport
 func (tcpCan *TCPCan) Write(frm *can.Frame) error {
 	// Convert frame to json
 	jsonBytes, err := json.Marshal(frm)
@@ -66,6 +69,7 @@ func (tcpCan *TCPCan) Write(frm *can.Frame) error {
 	return err
 }
 
+// ReadChan returns channel for reading frames
 func (tcpCan *TCPCan) ReadChan() chan *can.Frame {
 	return tcpCan.readChan
 }
@@ -80,7 +84,6 @@ func (tcpCan *TCPCan) listen() {
 
 		data := make([]byte, 512)
 		ll, err := tcpCan.conn.Read(data)
-
 		if err != nil {
 			continue
 		}

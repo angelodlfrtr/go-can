@@ -17,9 +17,6 @@ type SocketCan struct {
 	// busHandler handle can frame received
 	busHandler brutCan.Handler
 
-	// frames contain unread can frames from connectionJkA
-	frames []brutCan.Frame
-
 	// readChan
 	readChan chan *can.Frame
 }
@@ -28,7 +25,6 @@ type SocketCan struct {
 func (t *SocketCan) Open() error {
 	// Open socketcan connection
 	bus, err := brutCan.NewBusForInterfaceWithName(t.Interface)
-
 	if err != nil {
 		return err
 	}
@@ -73,7 +69,7 @@ func (t *SocketCan) Write(frm *can.Frame) error {
 	return t.bus.Publish(brutCanFrm)
 }
 
-// ReadChan
+// ReadChan returns channel for reading frames
 func (t *SocketCan) ReadChan() chan *can.Frame {
 	return t.readChan
 }

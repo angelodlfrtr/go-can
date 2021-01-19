@@ -1,4 +1,4 @@
-// Package main provide a small tcp server connection to a socket can interface and transfering
+// Package main provide a small tcp server connection to a socket can interface and transferring
 // data between server and a 'tcpcan' client. It allow client to do can over tcp
 package main
 
@@ -16,8 +16,10 @@ import (
 )
 
 // Flags
-var socketCanInterface string
-var port int
+var (
+	socketCanInterface string
+	port               int
+)
 
 var clientConn net.Conn
 
@@ -49,7 +51,6 @@ func main() {
 	go func() {
 		for {
 			conn, err := ln.Accept()
-
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -96,7 +97,6 @@ func main() {
 
 			data := make([]byte, 512)
 			ll, err := clientConn.Read(data)
-
 			if err != nil {
 				clientConn.Close()
 				clientConn = nil

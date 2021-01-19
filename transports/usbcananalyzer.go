@@ -179,7 +179,6 @@ func (t *USBCanAnalyzer) Open() error {
 	}
 
 	port, err := serial.OpenPort(serialConfig)
-
 	if err != nil {
 		return err
 	}
