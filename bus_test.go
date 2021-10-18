@@ -3,8 +3,6 @@ package can
 import (
 	"testing"
 	"time"
-
-	"github.com/angelodlfrtr/go-can/transports"
 )
 
 // FakeTransport
