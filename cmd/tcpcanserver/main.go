@@ -3,13 +3,13 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
-	"time"
+	"sync"
 
 	"github.com/angelodlfrtr/go-can"
 	"github.com/angelodlfrtr/go-can/transports"
@@ -21,7 +21,11 @@ var (
 	port               int
 )
 
-var clientConn net.Conn
+var (
+	clientConn net.Conn
+	clientBuf  []byte
+	mutx       sync.Mutex
+)
 
 func main() {
 	// Parse flags
@@ -57,11 +61,29 @@ func main() {
 
 			log.Printf(">> Accepted client conn : %s\n", conn.RemoteAddr())
 
+			mutx.Lock()
 			if clientConn == nil {
 				clientConn = conn
 			}
+			mutx.Unlock()
 
-			time.Sleep(10 * time.Millisecond)
+			go func() {
+				jsonDec := json.NewDecoder(clientConn)
+
+				for {
+					frm := &can.Frame{}
+
+					if err := jsonDec.Decode(frm); err != nil {
+						if err == net.ErrClosed || err == io.EOF {
+							break
+						}
+
+						panic(err)
+					}
+
+					bus.Write(frm)
+				}
+			}()
 		}
 	}()
 
@@ -73,53 +95,18 @@ func main() {
 			if clientConn != nil {
 				frmBytes, err := json.Marshal(frm)
 				if err != nil {
-					log.Println("ERROR", err)
-					continue
+					panic(err)
 				}
 
 				frmBytes = append(frmBytes, []byte("\r\n")...)
 
 				if _, err := clientConn.Write(frmBytes); err != nil {
+					log.Println("error while write to client conn:", err.Error())
 					clientConn.Close()
+					mutx.Lock()
 					clientConn = nil
+					mutx.Unlock()
 				}
-			}
-		}
-	}()
-
-	// Write data from tcp client to socketcan bus
-	go func() {
-		for {
-			if clientConn == nil {
-				time.Sleep(10 * time.Millisecond)
-				continue
-			}
-
-			data := make([]byte, 512)
-			ll, err := clientConn.Read(data)
-			if err != nil {
-				clientConn.Close()
-				clientConn = nil
-			}
-
-			dataBytes := make([]byte, ll)
-			copy(dataBytes, data)
-
-			// Split data with delimiter
-			frmsBytesSlice := bytes.Split(dataBytes, []byte("\r\n"))
-			if len(frmsBytesSlice) == 0 {
-				continue
-			}
-
-			for _, frmBytes := range frmsBytesSlice {
-				// Try to convert bytes to a frame
-				frm := &can.Frame{}
-				if err := json.Unmarshal(frmBytes, &frm); err != nil {
-					log.Println("ERROR", err)
-					continue
-				}
-
-				bus.Write(frm)
 			}
 		}
 	}()

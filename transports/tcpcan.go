@@ -1,10 +1,12 @@
+// @NOTE: use it in dev mode only. See cmd/tcpcanserver for server binary
 package transports
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"time"
 
 	"github.com/angelodlfrtr/go-can"
 )
@@ -32,7 +34,7 @@ func (tcpCan *TCPCan) Open() error {
 	tcpCan.readChan = make(chan *can.Frame)
 	tcpCan.stopChan = make(chan bool)
 
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", tcpCan.Host, tcpCan.Port))
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", tcpCan.Host, tcpCan.Port), 2*time.Second)
 	if err != nil {
 		return err
 	}
@@ -46,11 +48,7 @@ func (tcpCan *TCPCan) Open() error {
 
 // Close tcpCan transport
 func (tcpCan *TCPCan) Close() error {
-	select {
-	case tcpCan.stopChan <- true:
-	default:
-	}
-
+	close(tcpCan.stopChan)
 	return tcpCan.conn.Close()
 }
 
@@ -75,40 +73,18 @@ func (tcpCan *TCPCan) ReadChan() chan *can.Frame {
 }
 
 func (tcpCan *TCPCan) listen() {
+	jsonDec := json.NewDecoder(tcpCan.conn)
+
 	for {
-		select {
-		case <-tcpCan.stopChan:
-			return
-		default:
-		}
-
-		data := make([]byte, 512)
-		ll, err := tcpCan.conn.Read(data)
-		if err != nil {
-			continue
-		}
-
-		dataBytes := make([]byte, ll)
-		copy(dataBytes, data)
-		frmsBytesSlice := bytes.Split(dataBytes, []byte("\r\n"))
-
-		if len(frmsBytesSlice) == 0 {
-			continue
-		}
-
-		for _, frmBytes := range frmsBytesSlice {
-			if len(frmBytes) > 0 {
-				// Try to convert bytes to a frame
-				frm := &can.Frame{}
-				if err := json.Unmarshal(frmBytes, &frm); err != nil {
-					continue
-				}
-
-				select {
-				case tcpCan.readChan <- frm:
-				default:
-				}
+		frm := &can.Frame{}
+		if err := jsonDec.Decode(frm); err != nil {
+			if err == net.ErrClosed || err == io.EOF {
+				break
 			}
+
+			panic(err)
 		}
+
+		tcpCan.readChan <- frm
 	}
 }
