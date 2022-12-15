@@ -29,7 +29,11 @@ func (t *SocketCan) Open() error {
 		return err
 	}
 
-	go bus.ConnectAndPublish()
+	go func() {
+		if err := bus.ConnectAndPublish(); err != nil {
+			panic(err)
+		}
+	}()
 
 	t.readChan = make(chan *can.Frame)
 	t.bus = bus
@@ -74,8 +78,8 @@ func (t *SocketCan) ReadChan() chan *can.Frame {
 	return t.readChan
 }
 
-// handleFrame handle incoming frames from sockercan interface
-// and add them to frames buffer
+// handleFrame handle incoming frames from socketcan interface
+// and send it to readChan
 func (t *SocketCan) handleFrame(brutFrm brutCan.Frame) {
 	frm := &can.Frame{}
 
@@ -83,8 +87,5 @@ func (t *SocketCan) handleFrame(brutFrm brutCan.Frame) {
 	frm.DLC = brutFrm.Length
 	frm.Data = brutFrm.Data
 
-	select {
-	case t.readChan <- frm:
-	default:
-	}
+	t.readChan <- frm
 }

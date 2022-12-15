@@ -2,6 +2,8 @@
 
 [github.com/angelodlfrtr/go-can](https://github.com/angelodlfrtr/go-can) is a canbus golang library supporting multiple transports (serial adapater, socketcan, etc).
 
+**Does not support extended frames, feel free to create a PR**
+
 ## Installation
 
 ```bash

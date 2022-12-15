@@ -3,15 +3,13 @@ GOBIN=go
 # Lint code with golint
 .PHONY: lint
 lint:
-	find . -name "*.go" | xargs misspell -error
-	golint -set_exit_status ./...
 	go vet ./...
-	staticcheck ./...
+	golangci-lint run ./...
 
 # Clean
 .PHONY: clean
 clean:
-	rm -Rf ./coverage.out
+	rm ./coverage.out
 
 .PHONY: test
 test:

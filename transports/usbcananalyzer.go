@@ -2,6 +2,7 @@ package transports
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 	"sync"
 	"time"
@@ -52,13 +53,13 @@ func (t *USBCanAnalyzer) run() {
 				break
 			}
 
-			// Max size of a can frame == 18 (SOF + 16 + EOF) (16 = max can frame size)
-			data := make([]byte, 18)
+			// 64 byte read buffer
+			data := make([]byte, 64)
 
 			// Read data (in a blocking way)
 			n, err := t.client.Read(data)
 
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				continue
 			}
 
@@ -146,10 +147,7 @@ func (t *USBCanAnalyzer) publishFrames() bool {
 	t.dataBuf = t.dataBuf[lastMsgLen:]
 
 	// Publish frame
-	select {
-	case t.readChan <- frm:
-	default:
-	}
+	t.readChan <- frm
 
 	return true
 }
@@ -213,7 +211,7 @@ func (t *USBCanAnalyzer) Open() error {
 		return err
 	}
 
-	// Wait 500ms (else adapater has bugs)
+	// Wait 500ms (else adapater crash)
 	time.Sleep(500 * time.Millisecond)
 
 	// Run reads from serial
@@ -230,8 +228,8 @@ func (t *USBCanAnalyzer) Close() error {
 
 	// Stop reading serial port
 	t.mutex.Lock()
-	defer t.mutex.Unlock()
 	t.running = false
+	t.mutex.Unlock()
 
 	close(t.readChan)
 
